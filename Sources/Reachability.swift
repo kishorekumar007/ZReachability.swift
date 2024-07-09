@@ -28,7 +28,7 @@ POSSIBILITY OF SUCH DAMAGE.
 import SystemConfiguration
 import Foundation
 
-public enum ReachabilityError: Error {
+public enum ZReachabilityError: Error {
     case failedToCreateWithAddress(sockaddr, Int32)
     case failedToCreateWithHostname(String, Int32)
     case unableToSetCallback(Int32)
@@ -43,10 +43,10 @@ public extension Notification.Name {
     static let reachabilityChanged = Notification.Name("reachabilityChanged")
 }
 
-public class Reachability {
+public class ZReachability {
 
-    public typealias NetworkReachable = (Reachability) -> ()
-    public typealias NetworkUnreachable = (Reachability) -> ()
+    public typealias NetworkReachable = (ZReachability) -> ()
+    public typealias NetworkUnreachable = (ZReachability) -> ()
 
     @available(*, unavailable, renamed: "Connection")
     public enum NetworkStatus: CustomStringConvertible {
@@ -142,7 +142,7 @@ public class Reachability {
                             targetQueue: DispatchQueue? = nil,
                             notificationQueue: DispatchQueue? = .main) throws {
         guard let ref = SCNetworkReachabilityCreateWithName(nil, hostname) else {
-            throw ReachabilityError.failedToCreateWithHostname(hostname, SCError())
+            throw ZReachabilityError.failedToCreateWithHostname(hostname, SCError())
         }
         self.init(reachabilityRef: ref, queueQoS: queueQoS, targetQueue: targetQueue, notificationQueue: notificationQueue)
     }
@@ -155,7 +155,7 @@ public class Reachability {
         zeroAddress.sa_family = sa_family_t(AF_INET)
 
         guard let ref = SCNetworkReachabilityCreateWithAddress(nil, &zeroAddress) else {
-            throw ReachabilityError.failedToCreateWithAddress(zeroAddress, SCError())
+            throw ZReachabilityError.failedToCreateWithAddress(zeroAddress, SCError())
         }
 
         self.init(reachabilityRef: ref, queueQoS: queueQoS, targetQueue: targetQueue, notificationQueue: notificationQueue)
@@ -166,7 +166,7 @@ public class Reachability {
     }
 }
 
-public extension Reachability {
+public extension ZReachability {
 
     // MARK: - *** Notifier methods ***
     func startNotifier() throws {
@@ -209,12 +209,12 @@ public extension Reachability {
 
         if !SCNetworkReachabilitySetCallback(reachabilityRef, callback, &context) {
             stopNotifier()
-            throw ReachabilityError.unableToSetCallback(SCError())
+            throw ZReachabilityError.unableToSetCallback(SCError())
         }
 
         if !SCNetworkReachabilitySetDispatchQueue(reachabilityRef, reachabilitySerialQueue) {
             stopNotifier()
-            throw ReachabilityError.unableToSetDispatchQueue(SCError())
+            throw ZReachabilityError.unableToSetDispatchQueue(SCError())
         }
 
         // Perform an initial check
@@ -252,14 +252,14 @@ public extension Reachability {
     }
 }
 
-fileprivate extension Reachability {
+fileprivate extension ZReachability {
 
     func setReachabilityFlags() throws {
         try reachabilitySerialQueue.sync { [unowned self] in
             var flags = SCNetworkReachabilityFlags()
             if !SCNetworkReachabilityGetFlags(self.reachabilityRef, &flags) {
                 self.stopNotifier()
-                throw ReachabilityError.unableToGetFlags(SCError())
+                throw ZReachabilityError.unableToGetFlags(SCError())
             }
             
             self.flags = flags
@@ -281,7 +281,7 @@ fileprivate extension Reachability {
 
 extension SCNetworkReachabilityFlags {
 
-    typealias Connection = Reachability.Connection
+    typealias Connection = ZReachability.Connection
 
     var connection: Connection {
         guard isReachableFlagSet else { return .unavailable }
@@ -398,8 +398,8 @@ extension SCNetworkReachabilityFlags {
  - still allow for automatic stopping of the notifier on `deinit`.
  */
 private class ReachabilityWeakifier {
-    weak var reachability: Reachability?
-    init(reachability: Reachability) {
+    weak var reachability: ZReachability?
+    init(reachability: ZReachability) {
         self.reachability = reachability
     }
 }
